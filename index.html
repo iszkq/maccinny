@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>MacCinny</title>
+    <meta name="name" content="MacCinny" />
+    <meta name="author" content="Ajay Bura" />
+    <meta name="description" content="MacCinny is a macOS-only Matrix desktop client." />
+    <meta name="theme-color" content="#ffffff" />
+    <link id="favicon" rel="shortcut icon" href="/res/logo.png" />
+  </head>
+  <body id="appBody">
+    <script>
+      window.global ||= window;
+      (() => {
+        const applyViewportSize = () => {
+          const viewport = window.visualViewport;
+          const appHeight = Math.round(viewport?.height ?? window.innerHeight);
+          const appWidth = Math.round(viewport?.width ?? window.innerWidth);
+
+          document.documentElement.style.setProperty('--app-height', `${appHeight}px`);
+          document.documentElement.style.setProperty('--app-width', `${appWidth}px`);
+        };
+
+        applyViewportSize();
+        window.addEventListener('resize', applyViewportSize, { passive: true });
+        window.addEventListener('orientationchange', applyViewportSize, { passive: true });
+        window.addEventListener('pageshow', applyViewportSize, { passive: true });
+        window.visualViewport?.addEventListener('resize', applyViewportSize, { passive: true });
+        window.visualViewport?.addEventListener('scroll', applyViewportSize, { passive: true });
+      })();
+    </script>
+    <div id="root"></div>
+    <div id="portalContainer"></div>
+    <script type="module" src="/src/index.tsx"></script>
+  </body>
+</html>

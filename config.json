@@ -1,0 +1,35 @@
+{
+  "defaultHomeserver": 0,
+  "homeserverList": ["mtx01.cc", "converser.eu", "matrix.org", "mozilla.org", "unredacted.org", "xmr.se"],
+  "allowCustomHomeservers": true,
+  "audioTranscription": {
+    "defaultAihubmixApiKey": "sk-ORD4wbVuj5ThPB0x52633eCc417c43A39b94D49123A7F719"
+  },
+
+  "featuredCommunities": {
+    "openAsDefault": false,
+    "spaces": [
+      "#cinny-space:matrix.org",
+      "#community:matrix.org",
+      "#space:unredacted.org",
+      "#science-space:matrix.org",
+      "#libregaming-games:tchncs.de",
+      "#mathematics-on:matrix.org",
+      "#stickers-and-emojis:tastytea.de"
+    ],
+    "rooms": [
+      "#cinny:matrix.org",
+      "#freesoftware:matrix.org",
+      "#pcapdroid:matrix.org",
+      "#gentoo:matrix.org",
+      "#PrivSec.dev:arcticfoxes.net",
+      "#disroot:aria-net.org"
+    ],
+    "servers": ["matrixrooms.info", "matrix.org", "mozilla.org", "unredacted.org"]
+  },
+
+  "hashRouter": {
+    "enabled": false,
+    "basename": "/"
+  }
+}

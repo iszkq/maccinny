@@ -1,0 +1,271 @@
+import React, { MouseEventHandler, forwardRef, useState } from 'react';
+import {
+  Avatar,
+  Box,
+  Icon,
+  IconButton,
+  Icons,
+  Line,
+  Menu,
+  MenuItem,
+  PopOut,
+  RectCords,
+  Text,
+  Tooltip,
+  TooltipProvider,
+  config,
+  toRem,
+} from 'folds';
+import FocusTrap from 'focus-trap-react';
+import { PageHeader } from '../../components/page';
+import { useSetSetting } from '../../state/hooks/settings';
+import { settingsAtom } from '../../state/settings';
+import { useRoomAvatar, useRoomName } from '../../hooks/useRoomMeta';
+import { useSpace } from '../../hooks/useSpace';
+import { useMatrixClient } from '../../hooks/useMatrixClient';
+import { RoomAvatar } from '../../components/room-avatar';
+import { nameInitials } from '../../utils/common';
+import * as css from './LobbyHeader.css';
+import { IPowerLevels } from '../../hooks/usePowerLevels';
+import { UseStateProvider } from '../../components/UseStateProvider';
+import { LeaveSpacePrompt } from '../../components/leave-space-prompt';
+import { stopPropagation } from '../../utils/keyboard';
+import { isCompactScreenSize, useScreenSizeContext } from '../../hooks/useScreenSize';
+import { mxcUrlToHttp } from '../../utils/matrix';
+import { useMediaAuthentication } from '../../hooks/useMediaAuthentication';
+import { useOpenSpaceSettings } from '../../state/hooks/spaceSettings';
+import { useRoomCreators } from '../../hooks/useRoomCreators';
+import { useRoomPermissions } from '../../hooks/useRoomPermissions';
+import { InviteUserPrompt } from '../../components/invite-user-prompt';
+
+type LobbyMenuProps = {
+  powerLevels: IPowerLevels;
+  requestClose: () => void;
+};
+const LobbyMenu = forwardRef<HTMLDivElement, LobbyMenuProps>(
+  ({ powerLevels, requestClose }, ref) => {
+    const mx = useMatrixClient();
+    const space = useSpace();
+    const creators = useRoomCreators(space);
+
+    const permissions = useRoomPermissions(creators, powerLevels);
+    const canInvite = permissions.action('invite', mx.getSafeUserId());
+    const openSpaceSettings = useOpenSpaceSettings();
+
+    const [invitePrompt, setInvitePrompt] = useState(false);
+
+    const handleInvite = () => {
+      setInvitePrompt(true);
+    };
+
+    const handleRoomSettings = () => {
+      openSpaceSettings(space.roomId);
+      requestClose();
+    };
+
+    return (
+      <Menu ref={ref} style={{ maxWidth: toRem(160), width: '100vw' }}>
+        {invitePrompt && (
+          <InviteUserPrompt
+            room={space}
+            requestClose={() => {
+              setInvitePrompt(false);
+              requestClose();
+            }}
+          />
+        )}
+        <Box direction="Column" gap="100" style={{ padding: config.space.S100 }}>
+          <MenuItem
+            onClick={handleInvite}
+            variant="Primary"
+            fill="None"
+            size="300"
+            after={<Icon size="100" src={Icons.UserPlus} />}
+            radii="300"
+            aria-pressed={invitePrompt}
+            disabled={!canInvite}
+          >
+            <Text style={{ flexGrow: 1 }} as="span" size="T300" truncate>
+              {'\u9080\u8bf7'}
+            </Text>
+          </MenuItem>
+          <MenuItem
+            onClick={handleRoomSettings}
+            size="300"
+            after={<Icon size="100" src={Icons.Setting} />}
+            radii="300"
+          >
+            <Text style={{ flexGrow: 1 }} as="span" size="T300" truncate>
+              {'\u7a7a\u95f4\u8bbe\u7f6e'}
+            </Text>
+          </MenuItem>
+        </Box>
+        <Line variant="Surface" size="300" />
+        <Box direction="Column" gap="100" style={{ padding: config.space.S100 }}>
+          <UseStateProvider initial={false}>
+            {(promptLeave, setPromptLeave) => (
+              <>
+                <MenuItem
+                  onClick={() => setPromptLeave(true)}
+                  variant="Critical"
+                  fill="None"
+                  size="300"
+                  after={<Icon size="100" src={Icons.ArrowGoLeft} />}
+                  radii="300"
+                  aria-pressed={promptLeave}
+                >
+                  <Text style={{ flexGrow: 1 }} as="span" size="T300" truncate>
+                    {'\u9000\u51fa\u7a7a\u95f4'}
+                  </Text>
+                </MenuItem>
+                {promptLeave && (
+                  <LeaveSpacePrompt
+                    roomId={space.roomId}
+                    onDone={requestClose}
+                    onCancel={() => setPromptLeave(false)}
+                  />
+                )}
+              </>
+            )}
+          </UseStateProvider>
+        </Box>
+      </Menu>
+    );
+  }
+);
+
+type LobbyHeaderProps = {
+  showProfile?: boolean;
+  powerLevels: IPowerLevels;
+};
+export function LobbyHeader({ showProfile, powerLevels }: LobbyHeaderProps) {
+  const mx = useMatrixClient();
+  const useAuthentication = useMediaAuthentication();
+  const space = useSpace();
+  const setPeopleDrawer = useSetSetting(settingsAtom, 'isPeopleDrawer');
+  const [menuAnchor, setMenuAnchor] = useState<RectCords>();
+  const screenSize = useScreenSizeContext();
+
+  const name = useRoomName(space);
+  const avatarMxc = useRoomAvatar(space);
+  const avatarUrl = avatarMxc
+    ? mxcUrlToHttp(mx, avatarMxc, useAuthentication, 96, 96, 'crop') ?? undefined
+    : undefined;
+
+  const handleOpenMenu: MouseEventHandler<HTMLButtonElement> = (evt) => {
+    setMenuAnchor(evt.currentTarget.getBoundingClientRect());
+  };
+  const compact = isCompactScreenSize(screenSize);
+
+  return (
+    <PageHeader className={showProfile ? undefined : css.Header} balance>
+      <Box grow="Yes" alignItems="Center" gap="200">
+        {compact ? (
+          <>
+            <Box grow="Yes" basis="No" />
+            <Box grow="Yes" justifyContent="Center">
+              {showProfile && (
+                <Text size="H3" truncate>
+                  {name}
+                </Text>
+              )}
+            </Box>
+          </>
+        ) : (
+          <>
+            <Box grow="Yes" basis="No" />
+            <Box justifyContent="Center" alignItems="Center" gap="300">
+              {showProfile && (
+                <>
+                  <Avatar size="300">
+                    <RoomAvatar
+                      roomId={space.roomId}
+                      src={avatarUrl}
+                      alt={name}
+                      renderFallback={() => <Text size="H4">{nameInitials(name)}</Text>}
+                    />
+                  </Avatar>
+                  <Text size="H3" truncate>
+                    {name}
+                  </Text>
+                </>
+              )}
+            </Box>
+          </>
+        )}
+        <Box
+          shrink="No"
+          grow="Yes"
+          basis="No"
+          justifyContent="End"
+        >
+          {!compact && (
+            <TooltipProvider
+              position="Bottom"
+              offset={4}
+              tooltip={
+                <Tooltip>
+                  <Text>{'\u6210\u5458'}</Text>
+                </Tooltip>
+              }
+            >
+              {(triggerRef) => (
+                <IconButton
+                  fill="None"
+                  ref={triggerRef}
+                  onClick={() => setPeopleDrawer((drawer) => !drawer)}
+                >
+                  <Icon size="400" src={Icons.User} />
+                </IconButton>
+              )}
+            </TooltipProvider>
+          )}
+          <TooltipProvider
+            position="Bottom"
+            align="End"
+            offset={4}
+            tooltip={
+              <Tooltip>
+                <Text>{'\u66f4\u591a\u9009\u9879'}</Text>
+              </Tooltip>
+            }
+          >
+            {(triggerRef) => (
+              <IconButton
+                fill="None"
+                onClick={handleOpenMenu}
+                ref={triggerRef}
+                aria-pressed={!!menuAnchor}
+              >
+                <Icon size="400" src={Icons.VerticalDots} filled={!!menuAnchor} />
+              </IconButton>
+            )}
+          </TooltipProvider>
+          <PopOut
+            anchor={menuAnchor}
+            position="Bottom"
+            align="End"
+            content={
+              <FocusTrap
+                focusTrapOptions={{
+                  initialFocus: false,
+                  returnFocusOnDeactivate: false,
+                  onDeactivate: () => setMenuAnchor(undefined),
+                  clickOutsideDeactivates: true,
+                  isKeyForward: (evt: KeyboardEvent) => evt.key === 'ArrowDown',
+                  isKeyBackward: (evt: KeyboardEvent) => evt.key === 'ArrowUp',
+                  escapeDeactivates: stopPropagation,
+                }}
+              >
+                <LobbyMenu
+                  powerLevels={powerLevels}
+                  requestClose={() => setMenuAnchor(undefined)}
+                />
+              </FocusTrap>
+            }
+          />
+        </Box>
+      </Box>
+    </PageHeader>
+  );
+}
